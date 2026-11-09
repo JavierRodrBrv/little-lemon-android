@@ -3,6 +3,7 @@ package com.example.littlelemon
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,12 +17,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,7 +57,11 @@ import com.example.littlelemon.ui.theme.SecondaryLightGray
 
 @Composable
 fun Home(navController: NavHostController, database: AppDatabase? = null) {
-    val databaseMenuItems = database?.menuItemDao()?.getAll()?.observeAsState(emptyList())?.value ?: emptyList()
+    val databaseMenuItems by (database?.menuItemDao()?.getAll()?.observeAsState(emptyList())
+        ?: remember { mutableStateOf(emptyList()) })
+
+    var searchPhrase by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -86,7 +103,7 @@ fun Home(navController: NavHostController, database: AppDatabase? = null) {
             )
         }
 
-        // Paso 4: Sección Hero
+        // Sección Hero con descripción, imagen y barra de búsqueda
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -113,7 +130,7 @@ fun Home(navController: NavHostController, database: AppDatabase? = null) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Somos un restaurante mediterráneo familiar, centrado en recetas tradicionales servidas con un toque moderno",
+                    text = "We are a family owned Mediterranean restaurant, focused on traditional recipes served with a modern twist.",
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
@@ -131,14 +148,107 @@ fun Home(navController: NavHostController, database: AppDatabase? = null) {
                     contentScale = ContentScale.Crop
                 )
             }
+
+            // Paso 1: Campo de texto TextField para búsqueda
+            TextField(
+                value = searchPhrase,
+                onValueChange = { searchPhrase = it },
+                placeholder = { Text("Enter search phrase", color = SecondaryCharcoal.copy(alpha = 0.6f)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search Icon",
+                        tint = SecondaryCharcoal
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp)),
+                colors = TextFieldDefaults.textFieldColors(
+                    backgroundColor = SecondaryLightGray,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    textColor = SecondaryCharcoal,
+                    cursorColor = PrimaryGreen
+                ),
+                singleLine = true
+            )
         }
 
-        // Paso 5: Despliegue de los elementos del menú obtenidos de la base de datos
-        MenuItems(menuItems = databaseMenuItems)
+        // Paso 2: Desglose del menú por categorías (Order for Delivery!)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp, bottom = 10.dp)
+        ) {
+            Text(
+                text = "ORDER FOR DELIVERY!",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
+                color = SecondaryCharcoal,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Categorías fijas estándar (o agrupadas a partir de la base de datos)
+            val categories = listOf("Starters", "Mains", "Desserts", "Drinks")
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                for (cat in categories) {
+                    val isSelected = selectedCategory.equals(cat, ignoreCase = true)
+                    Button(
+                        onClick = {
+                            selectedCategory = if (isSelected) "" else cat
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = if (isSelected) PrimaryGreen else SecondaryLightGray,
+                            contentColor = if (isSelected) Color.White else PrimaryGreen
+                        ),
+                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Text(
+                            text = cat,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Divider(
+            color = SecondaryLightGray,
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+        )
+
+        // Paso 1 & 2: Filtrado por texto de búsqueda y por categoría seleccionada
+        var filteredMenuItems = if (searchPhrase.isNotBlank()) {
+            databaseMenuItems.filter { it.title.contains(searchPhrase, ignoreCase = true) }
+        } else {
+            databaseMenuItems
+        }
+
+        if (selectedCategory.isNotBlank()) {
+            filteredMenuItems = filteredMenuItems.filter {
+                it.category.equals(selectedCategory, ignoreCase = true)
+            }
+        }
+
+        // Despliegue de los elementos del menú filtrados
+        MenuItems(menuItems = filteredMenuItems)
     }
 }
 
-// Paso 5: Composable MenuItems que recibe la lista de elementos y los muestra debajo de la sección hero
+// Composable MenuItems que recibe la lista de elementos filtrada
 @Composable
 fun MenuItems(menuItems: List<MenuItemRoom>) {
     LazyColumn(
@@ -153,10 +263,18 @@ fun MenuItems(menuItems: List<MenuItemRoom>) {
     }
 }
 
-// Paso 5: Composable representando un único elemento de menú con título, precio, descripción e imagen remota con Glide
+// Composable representando un único elemento de menú con soporte de fallback si la URL remota falla
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun MenuItem(menuItem: MenuItemRoom) {
+    val fallbackDrawable = when {
+        menuItem.title.contains("Lemon", ignoreCase = true) -> R.drawable.lemon_dessert
+        menuItem.title.contains("Fish", ignoreCase = true) -> R.drawable.grilled_fish
+        menuItem.title.contains("Salad", ignoreCase = true) -> R.drawable.greek_salad
+        menuItem.title.contains("Bruschetta", ignoreCase = true) -> R.drawable.bruschetta
+        else -> null
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -196,7 +314,15 @@ fun MenuItem(menuItem: MenuItemRoom) {
                 .size(75.dp)
                 .clip(RoundedCornerShape(8.dp)),
             contentScale = ContentScale.Crop
-        )
+        ) {
+            if (fallbackDrawable != null) {
+                it.placeholder(fallbackDrawable)
+                    .error(fallbackDrawable)
+                    .fallback(fallbackDrawable)
+            } else {
+                it
+            }
+        }
     }
 }
 
