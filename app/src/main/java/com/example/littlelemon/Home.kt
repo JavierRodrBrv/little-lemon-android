@@ -19,17 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
-import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.example.littlelemon.ui.theme.LittleLemonTheme
 import com.example.littlelemon.ui.theme.PrimaryGreen
 import com.example.littlelemon.ui.theme.PrimaryYellow
@@ -49,8 +43,8 @@ import com.example.littlelemon.ui.theme.SecondaryCharcoal
 import com.example.littlelemon.ui.theme.SecondaryLightGray
 
 @Composable
-fun Home(navController: NavHostController) {
-    var searchPhrase by remember { mutableStateOf("") }
+fun Home(navController: NavHostController, database: AppDatabase? = null) {
+    val databaseMenuItems = database?.menuItemDao()?.getAll()?.observeAsState(emptyList())?.value ?: emptyList()
 
     Column(
         modifier = Modifier
@@ -92,7 +86,7 @@ fun Home(navController: NavHostController) {
             )
         }
 
-        // Sección Hero
+        // Paso 4: Sección Hero
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,7 +113,7 @@ fun Home(navController: NavHostController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "We are a family owned Mediterranean restaurant, focused on traditional recipes served with a modern twist.",
+                    text = "Somos un restaurante mediterráneo familiar, centrado en recetas tradicionales servidas con un toque moderno",
                     color = Color.White,
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
@@ -137,107 +131,32 @@ fun Home(navController: NavHostController) {
                     contentScale = ContentScale.Crop
                 )
             }
-
-            // Barra de búsqueda
-            OutlinedTextField(
-                value = searchPhrase,
-                onValueChange = { searchPhrase = it },
-                placeholder = { Text("Enter search phrase", color = SecondaryCharcoal.copy(alpha = 0.6f)) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = SecondaryCharcoal
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    backgroundColor = SecondaryLightGray,
-                    focusedBorderColor = PrimaryGreen,
-                    unfocusedBorderColor = Color.Transparent,
-                    textColor = SecondaryCharcoal
-                ),
-                singleLine = true
-            )
         }
 
-        // Sección Desglose del Menú
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-        ) {
-            Text(
-                text = "ORDER FOR DELIVERY!",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = SecondaryCharcoal
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CategoryChip("Starters")
-                CategoryChip("Mains")
-                CategoryChip("Desserts")
-                CategoryChip("Sides")
-            }
-        }
-
-        Divider(color = SecondaryLightGray, thickness = 1.dp)
-
-        // Lista de platos de ejemplo
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 20.dp)
-        ) {
-            val sampleDishes = listOf(
-                Triple("Greek Salad", "The famous greek salad of crispy lettuce, peppers, olives and feta cheese.", "$12.99" to R.drawable.greek_salad),
-                Triple("Bruschetta", "Grilled bread smeared with garlic and seasoned with salt and olive oil.", "$7.99" to R.drawable.bruschetta),
-                Triple("Grilled Fish", "Daily fresh sea bass seasoned with Mediterranean herbs and lemon.", "$18.50" to R.drawable.grilled_fish),
-                Triple("Lemon Dessert", "Traditional grandmother recipe with fresh organic lemons.", "$6.50" to R.drawable.lemon_dessert)
-            )
-
-            items(sampleDishes) { dish ->
-                DishRow(
-                    title = dish.first,
-                    description = dish.second,
-                    price = dish.third.first,
-                    imageRes = dish.third.second
-                )
-                Divider(color = SecondaryLightGray, thickness = 1.dp)
-            }
-        }
+        // Paso 5: Despliegue de los elementos del menú obtenidos de la base de datos
+        MenuItems(menuItems = databaseMenuItems)
     }
 }
 
+// Paso 5: Composable MenuItems que recibe la lista de elementos y los muestra debajo de la sección hero
 @Composable
-fun CategoryChip(name: String) {
-    Box(
+fun MenuItems(menuItems: List<MenuItemRoom>) {
+    LazyColumn(
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(SecondaryLightGray)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
     ) {
-        Text(
-            text = name,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryGreen
-        )
+        items(menuItems) { menuItem ->
+            MenuItem(menuItem = menuItem)
+            Divider(color = SecondaryLightGray, thickness = 1.dp)
+        }
     }
 }
 
+// Paso 5: Composable representando un único elemento de menú con título, precio, descripción e imagen remota con Glide
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun DishRow(title: String, description: String, price: String, imageRes: Int) {
+fun MenuItem(menuItem: MenuItemRoom) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -248,29 +167,31 @@ fun DishRow(title: String, description: String, price: String, imageRes: Int) {
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = title,
+                text = menuItem.title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = SecondaryCharcoal
             )
             Text(
-                text = description,
+                text = menuItem.description,
                 fontSize = 13.sp,
                 color = PrimaryGreen,
                 lineHeight = 17.sp,
                 modifier = Modifier.padding(vertical = 4.dp)
             )
             Text(
-                text = price,
+                text = "$${String.format("%.2f", menuItem.price)}",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryGreen
             )
         }
+
         Spacer(modifier = Modifier.width(16.dp))
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = title,
+
+        GlideImage(
+            model = menuItem.image,
+            contentDescription = menuItem.title,
             modifier = Modifier
                 .size(75.dp)
                 .clip(RoundedCornerShape(8.dp)),

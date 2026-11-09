@@ -8,11 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 
 @Composable
-fun Navigation(navController: NavHostController) {
+fun Navigation(navController: NavHostController, database: AppDatabase? = null) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("LittleLemon", Context.MODE_PRIVATE)
 
-    // Determinar el destino de inicio según si el usuario ya está registrado
     val isUserRegistered = sharedPreferences.getBoolean("userRegistered", false) ||
             !sharedPreferences.getString("firstName", "").isNullOrBlank()
 
@@ -30,7 +29,7 @@ fun Navigation(navController: NavHostController) {
             Onboarding(navController = navController)
         }
         composable(Home.route) {
-            Home(navController = navController)
+            Home(navController = navController, database = database)
         }
         composable(Profile.route) {
             Profile(navController = navController)
@@ -38,8 +37,7 @@ fun Navigation(navController: NavHostController) {
     }
 }
 
-// Alias compatible por si el ejercicio o grader invoca MyNavigation
 @Composable
-fun MyNavigation(navController: NavHostController) {
-    Navigation(navController = navController)
+fun MyNavigation(navController: NavHostController, database: AppDatabase? = null) {
+    Navigation(navController = navController, database = database)
 }

@@ -15,12 +15,21 @@ data class MenuItemNetwork(
     val id: Int,
     @SerialName("title")
     val title: String,
+    @SerialName("description")
+    val description: String,
     @SerialName("price")
-    val price: Double,
+    val price: String,
+    @SerialName("image")
+    val image: String,
+    @SerialName("category")
+    val category: String
 ) {
     fun toMenuItemRoom() = MenuItemRoom(
         id = id,
         title = title,
-        price = price
+        description = description,
+        price = price.toDoubleOrNull() ?: 0.0,
+        image = image,
+        category = category
     )
 }
