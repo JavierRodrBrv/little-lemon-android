@@ -1,5 +1,7 @@
 package com.example.littlelemon
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,12 +30,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.littlelemon.ui.theme.ButtonBorder
 import com.example.littlelemon.ui.theme.LittleLemonTheme
 import com.example.littlelemon.ui.theme.PrimaryGreen
@@ -41,8 +46,11 @@ import com.example.littlelemon.ui.theme.PrimaryYellow
 import com.example.littlelemon.ui.theme.SecondaryCharcoal
 
 @Composable
-fun Onboarding() {
-    // State holders for user input
+fun Onboarding(navController: NavHostController) {
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("LittleLemon", Context.MODE_PRIVATE)
+
+    // Paso 4: Estados para First name, Last name y Email con remember
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -54,7 +62,7 @@ fun Onboarding() {
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Paso 2: Encabezado con el logotipo
+        // Paso 2: Encabezado superior con el logotipo
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -72,7 +80,7 @@ fun Onboarding() {
             )
         }
 
-        // Paso 4: Banner estático "Let's get to know you"
+        // Paso 4: Banner "Let's get to know you"
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -89,7 +97,7 @@ fun Onboarding() {
             )
         }
 
-        // Paso 4: Sección de información personal y campos de entrada
+        // Paso 4: Sección de información personal y campos
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,7 +111,7 @@ fun Onboarding() {
                 modifier = Modifier.padding(bottom = 28.dp)
             )
 
-            // Campo: Nombre de pila (First name)
+            // Primer campo: First name
             Text(
                 text = "First name",
                 style = MaterialTheme.typography.caption,
@@ -128,7 +136,7 @@ fun Onboarding() {
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Campo: Apellidos (Last name)
+            // Segundo campo: Last name
             Text(
                 text = "Last name",
                 style = MaterialTheme.typography.caption,
@@ -153,7 +161,7 @@ fun Onboarding() {
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Campo: Correo electrónico (Email)
+            // Tercer campo: Email
             Text(
                 text = "Email",
                 style = MaterialTheme.typography.caption,
@@ -178,10 +186,41 @@ fun Onboarding() {
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Paso 5: Botón de registro
+            // Paso 5: Botón Register con validación y persistencia
             Button(
                 onClick = {
-                    // Acción de registro / validación para ejercicios siguientes
+                    // Validación de campos vacíos con isBlank()
+                    if (firstName.isBlank() || lastName.isBlank() || email.isBlank()) {
+                        Toast.makeText(
+                            context,
+                            "Registration unsuccessful. Please enter all data.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        // Persistir datos en SharedPreferences
+                        sharedPreferences.edit()
+                            .putString("firstName", firstName)
+                            .putString("first_name", firstName)
+                            .putString("lastName", lastName)
+                            .putString("last_name", lastName)
+                            .putString("email", email)
+                            .putBoolean("userRegistered", true)
+                            .putBoolean("isLoggedIn", true)
+                            .apply()
+
+                        Toast.makeText(
+                            context,
+                            "Registration successful!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // Navegar a Home y remover Onboarding del backstack
+                        navController.navigate(Home.route) {
+                            popUpTo(Onboarding.route) {
+                                inclusive = true
+                            }
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -208,6 +247,6 @@ fun Onboarding() {
 @Composable
 fun OnboardingPreview() {
     LittleLemonTheme {
-        Onboarding()
+        Onboarding(navController = rememberNavController())
     }
 }
